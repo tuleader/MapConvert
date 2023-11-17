@@ -1,27 +1,15 @@
-import tkinter as tk
-from tkinter import filedialog, messagebox
-from docx2pdf import convert
-from pdf2image import convert_from_path
-import PyPDF2
-import os
-def convert_pdf_to_images(pdf_path):
-    print(pdf_path)
-    # Đọc tệp PDF
-    with open(pdf_path, "rb") as pdf_file:
-        pdf_reader = PyPDF2.PdfReader(pdf_file)
-        
-        # Tạo thư mục mới dựa trên tên tệp PDF
-        pdf_folder = os.path.splitext(pdf_path)[0]  # Lấy tên tệp PDF (không kể phần mở rộng)
-        os.makedirs(pdf_folder, exist_ok=True)  # Tạo thư mục, tự động bỏ qua nếu thư mục đã tồn tại
+import unicodedata
+from unidecode import unidecode
+def remove_accents(input_str):
+    nfkd_form = unicodedata.normalize('NFKD', input_str)
+    without_accents = ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
+    
+    # Replace specific characters like 'đ' with their non-accented counterparts
+    without_accents = without_accents.replace('đ', 'd')
+    without_accents = without_accents.replace('Đ', 'D')
+    return without_accents
 
-        # Lặp qua từng trang và chuyển đổi thành hình ảnh
-        for page_number in range(len(pdf_reader.pages)):
-            # Đọc trang PDF
-            # pdf_page = pdf_reader.pages[page_number]
-
-            # Chuyển đổi trang PDF thành hình ảnh
-            images = convert_from_path(pdf_path, first_page=page_number + 1, last_page=page_number + 1)
-
-            # Lưu hình ảnh
-            image_path = os.path.join(pdf_folder, f"page_{page_number + 1}.png")
-            images[0].save(image_path, "PNG")
+# Test the function
+input_str = "Thẹ giới đầy rẫy những định kiến."
+result = remove_accents(input_str)
+print(result)
