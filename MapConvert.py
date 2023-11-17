@@ -6,17 +6,21 @@ import PyPDF2
 import os
 import shutil
 import unicodedata
-def convert_files(file_paths, conversion_type):
+
+def convert_files(file_paths, conversion_type, destination_directory):
     if conversion_type == "docx_to_pdf":
         for input_file in file_paths:
-            convert(input_file)
+            convert(input_file, os.path.join(destination_directory, os.path.basename(input_file) + ".pdf"))
         messagebox.showinfo("Done", f"Đã convert {len(file_paths)} file(s) từ DOCX to PDF!")
     elif conversion_type == "pdf_to_png":
         for file_path in file_paths:
-            copy_file(file_path)
+            copy_file(file_path, destination_directory)
         messagebox.showinfo("Done", f"Đã convert {len(file_paths)} file(s) từ PDF to PNG!")
 
 def browse_files():
+    # Chọn đường dẫn lưu
+    destination_directory = filedialog.askdirectory(title="Chọn thư mục lưu")
+
     # Chọn file dựa trên loại tệp được chọn
     if conversion_type.get() == "docx_to_pdf":
         file_types = [("Word files", "*.docx")]
@@ -32,7 +36,7 @@ def browse_files():
     selected_conversion_type = conversion_type.get()
 
     # Perform the conversion
-    convert_files(file_paths, selected_conversion_type)
+    convert_files(file_paths, selected_conversion_type, destination_directory)
 
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
@@ -43,31 +47,28 @@ def remove_accents(input_str):
     without_accents = without_accents.replace('Đ', 'D')
     return without_accents
 
-def copy_file(source_path):
+def copy_file(source_path, destination_directory):
     # Kiểm tra xem đường dẫn nguồn có tồn tại không
     if not os.path.exists(source_path):
         print(f"Đường dẫn '{source_path}' không tồn tại.")
         return
 
-
     # Lấy tên file từ đường dẫn nguồn
     file_name = os.path.basename(source_path)
 
-    # Lấy đường dẫn của thư mục chứa file Python đang chạy
-    script_directory = os.path.dirname(os.path.abspath(__file__))
-
     # Tạo đường dẫn không dấu cho file mới
     dest_name = remove_accents(file_name)
-    dest_path = os.path.join(script_directory, dest_name)
+    dest_path = os.path.join(destination_directory, dest_name)
 
     # Kiểm tra xem file mới có tồn tại chưa, nếu có thì thêm số đằng sau
     count = 1
     while os.path.exists(dest_path):
         dest_name = f"{remove_accents(os.path.splitext(file_name)[0])}_{count}{os.path.splitext(file_name)[1]}"
-        dest_path = os.path.join(script_directory, dest_name)
+        dest_path = os.path.join(destination_directory, dest_name)
         count += 1
 
     try:
+        print(dest_path)
         # Copy file
         shutil.copy2(source_path, dest_path)
         # thực hiện convert
@@ -75,7 +76,8 @@ def copy_file(source_path):
         # Xóa file copy
         os.remove(dest_path)
     except Exception as e:
-        print(f"Lỗi khi thực hiện tác vụ: {e}")
+        messagebox.showerror("Error",f"Lỗi khi thực hiện tác vụ: {e}")
+
 def convert_pdf_to_images(pdf_path):
     try:
         # Đọc tệp PDF
@@ -88,9 +90,6 @@ def convert_pdf_to_images(pdf_path):
 
             # Lặp qua từng trang và chuyển đổi thành hình ảnh
             for page_number in range(len(pdf_reader.pages)):
-                # Đọc trang PDF
-                # pdf_page = pdf_reader.pages[page_number]
-
                 # Chuyển đổi trang PDF thành hình ảnh
                 images = convert_from_path(pdf_path, first_page=page_number + 1, last_page=page_number + 1)
 
@@ -99,6 +98,7 @@ def convert_pdf_to_images(pdf_path):
                 images[0].save(image_path, "PNG")
     except Exception as e:
         messagebox.showerror("Error",f"Lỗi khi thực hiện tác vụ: {e}")
+
 # Create the main window
 root = tk.Tk()
 root.title("File Converter")
