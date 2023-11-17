@@ -4,7 +4,8 @@ from docx2pdf import convert
 from pdf2image import convert_from_path
 import PyPDF2
 import os
-
+from unidecode import unidecode
+import shutil
 def convert_files(file_paths, conversion_type):
     if conversion_type == "docx_to_pdf":
         for input_file in file_paths:
@@ -12,7 +13,7 @@ def convert_files(file_paths, conversion_type):
         messagebox.showinfo("Done", f"Đã convert {len(file_paths)} file(s) từ DOCX to PDF!")
     elif conversion_type == "pdf_to_png":
         for file_path in file_paths:
-            convert_pdf_to_images(file_path)
+            copy_file_without_accents(file_path)
         messagebox.showinfo("Done", f"Đã convert {len(file_paths)} file(s) từ PDF to PNG!")
 
 def browse_files():
@@ -33,6 +34,36 @@ def browse_files():
     # Perform the conversion
     convert_files(file_paths, selected_conversion_type)
 
+def copy_file_without_accents(source_path):
+    # Kiểm tra xem đường dẫn nguồn có tồn tại không
+    if not os.path.exists(source_path):
+        print(f"Đường dẫn '{source_path}' không tồn tại.")
+        return
+
+    # Lấy tên file từ đường dẫn nguồn
+    file_name = os.path.basename(source_path)
+
+    # Tạo đường dẫn không dấu cho file mới
+    dest_path = os.path.join(os.path.dirname(source_path), unidecode(file_name))
+
+    # Kiểm tra xem file mới có tồn tại chưa, nếu có thì thêm số đằng sau
+    count = 1
+    while os.path.exists(dest_path):
+        dest_path = os.path.join(
+            os.path.dirname(source_path),
+            unidecode(os.path.splitext(file_name)[0]) + f"_{count}" + os.path.splitext(file_name)[1]
+        )
+        count += 1
+
+    try:
+        # Copy file
+        shutil.copy2(source_path, dest_path)
+        # print(f"Đã tạo bản sao không dấu tại '{dest_path}'.")
+        convert_pdf_to_images(dest_path)
+        os.remove(dest_path)
+        # print(f"Đã xóa bản sao không dấu '{dest_path}'.")   
+    except Exception as e:
+        print(f"Lỗi khi tạo bản sao: {e}") 
 def convert_pdf_to_images(pdf_path):
     # Đọc tệp PDF
     with open(pdf_path, "rb") as pdf_file:
@@ -45,7 +76,7 @@ def convert_pdf_to_images(pdf_path):
         # Lặp qua từng trang và chuyển đổi thành hình ảnh
         for page_number in range(len(pdf_reader.pages)):
             # Đọc trang PDF
-            pdf_page = pdf_reader.pages[page_number]
+            # pdf_page = pdf_reader.pages[page_number]
 
             # Chuyển đổi trang PDF thành hình ảnh
             images = convert_from_path(pdf_path, first_page=page_number + 1, last_page=page_number + 1)
@@ -59,7 +90,7 @@ root = tk.Tk()
 root.title("File Converter")
 
 # Create and configure a label
-label = tk.Label(root, text="Vui lòng chọn file để chuyển đổi:")
+label = tk.Label(root, text="Vui lòng chọn định dạng file để chuyển đổi:")
 label.pack()
 
 # Create a variable to store the selected conversion type
